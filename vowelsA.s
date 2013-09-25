@@ -12,6 +12,7 @@
 # Date:		12/3/12
 ###############################################################################
 
+
 .data
 prompt:       .asciiz  "Enter line:\n"
 vowels:       .asciiz  " vowels\n"
@@ -21,6 +22,7 @@ description:  .asciiz  "Vowel counting program.\n"
 
 __start:
     sub   $sp, $sp, 8   # 2 word AR, for 2 parameters
+    la    $10, vowels
 main_loop:
     jal  readLine
     blt  $v0, $0, end        # if '\n' entered as first char, program ends
@@ -29,7 +31,9 @@ main_loop:
     sw   $8, 4($sp)          # set parameters for function call
     sw   $9, 8($sp)          # set base to 10
     jal  print_integer
-    puts vowels
+    addi $2, $0, 4           # replace puts $10 with syscall
+    add  $4, $10, $0
+    syscall
     b    main_loop
 end:
     done
@@ -52,8 +56,12 @@ readLine:
 
     li   $9, 0               # $9 holds count of lowercase vowels
     la   $10, prompt         # $10 holds prompt
-    puts $10
-    getc $8 
+    addi $2, $0, 4           # replace puts $10 with syscall
+    add  $4, $10, $0
+    syscall
+    addi $2, $0, 12          # replace getc $8 with syscall
+    syscall
+    add  $8, $2, $0 
     beq  $8, 10, end_prog    # if encounter '\n' first, end program
 while:                       # iterate through all characters
     beq  $8, 10, end_line    # if newline, line is over
@@ -62,11 +70,15 @@ while:                       # iterate through all characters
     beq  $8, 105, add_one
     beq  $8, 111, add_one
     beq  $8, 117, add_one
-    getc $8
+    addi $2, $0, 12          # replace getc $8 with syscall
+    syscall
+    add  $8, $2, $0 
     b    while               # if no match, get next char and continue
 add_one:                     # increment count if lowercase vowel encountered
     add  $9, $9, 1
-    getc $8
+    addi $2, $0, 12          # replace getc $8 with syscall
+    syscall
+    add  $8, $2, $0 
     b    while               # get next char and continue
 
 end_line:
@@ -111,7 +123,9 @@ print_integer:
    add  $10, $8, $0          # check if integer is negative
    bge  $10, $0, positive
    li   $10, 45              # if negative, print '-'
-   putc $10
+   addi $2, $0, 11           # replaced putc $10 with syscall
+   add  $4, $10, $0
+   syscall
    sub  $8, $0, $8           # convert to positive number for processing
 positive:
    li   $11, 1               # $11 holds divisor
@@ -126,7 +140,9 @@ got_divisor:
    blt  $11, 1, converted    # while divisor is greater than 1
    div  $12, $8, $11         # divide current digit by divisor
    add  $12, $12, 48         # convert digit to ascii value
-   putc $12                  # print out digits one by one
+   addi $2, $0, 11           # replace putc $12 with syscall
+   add  $4, $12, $0
+   syscall                  
    rem  $8, $8, $11          # calculate int representing remaining digits
    div  $11, $11, $9         # divide divisor by base
    b    got_divisor
